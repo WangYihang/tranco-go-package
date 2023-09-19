@@ -23,12 +23,12 @@ type TrancoList struct {
 }
 
 func NewTrancoList(date string, includeSubdomain bool, scale string) (*TrancoList, error) {
-	slog.Info("obtain tranco list id", slog.String("date", date), slog.Bool("includeSubdomain", includeSubdomain), slog.String("scale", scale))
+	slog.Debug("obtain tranco list id", slog.String("date", date), slog.Bool("includeSubdomain", includeSubdomain), slog.String("scale", scale))
 	listID, err := getTrancoListID(date, includeSubdomain)
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("downloading tranco list", slog.String("id", listID))
+	slog.Debug("downloading tranco list", slog.String("id", listID))
 	list := TrancoList{
 		ID:               listID,
 		Date:             date,
@@ -36,7 +36,7 @@ func NewTrancoList(date string, includeSubdomain bool, scale string) (*TrancoLis
 		Scale:            scale,
 	}
 	list.Download(list.DefaultFilePath())
-	slog.Info("tranco list downloaded", slog.String("id", listID))
+	slog.Debug("tranco list downloaded", slog.String("id", listID))
 	return &list, nil
 }
 
@@ -61,11 +61,11 @@ func (t *TrancoList) Rank(domain string) (int64, error) {
 	defer fd.Close()
 
 	scanner := bufio.NewScanner(fd)
-	slog.Info("Scanning tranco list", slog.String("domain", t.DefaultFilePath()))
+	slog.Debug("Scanning tranco list", slog.String("domain", t.DefaultFilePath()))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		currentRank, currentDomain := parseLine(line)
-		slog.Info("Scanning tranco list", slog.String("domain", currentDomain), slog.Int64("rank", currentRank))
+		slog.Debug("Scanning tranco list", slog.String("domain", currentDomain), slog.Int64("rank", currentRank))
 		t.cache[currentDomain] = currentRank
 		if currentDomain == domain {
 			return currentRank, nil
@@ -82,7 +82,7 @@ func (t *TrancoList) Download(filePath string) error {
 
 	url := t.URL()
 
-	slog.Info("downloading ", slog.String("url", url), slog.String("filePath", filePath))
+	slog.Debug("downloading ", slog.String("url", url), slog.String("filePath", filePath))
 
 	resp, err := http.Get(url)
 	if err != nil {
