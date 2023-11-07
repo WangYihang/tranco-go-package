@@ -15,7 +15,7 @@ import (
 
 type Options struct {
 	InputFilepath         string `short:"i" long:"input-filepath" description:"input filepath" required:"true" default:"-"`
-	Date                  string `short:"t" long:"date" description:"date of the list" required:"true" default:"2023-01-01"`
+	Date                  string `short:"t" long:"date" description:"date of the list" required:"true" default:"2022-01-01"`
 	SecondLevelDomainOnly bool   `short:"s" long:"second-level-domain-only" description:"only check second level domain"`
 	Version               bool   `short:"v" long:"version" description:"Version"`
 }
