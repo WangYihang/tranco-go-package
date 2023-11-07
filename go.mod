@@ -1,6 +1,6 @@
 module github.com/WangYihang/tranco
 
-go 1.21.0
+go 1.21.3
 
 require (
 	github.com/jessevdk/go-flags v1.5.0
