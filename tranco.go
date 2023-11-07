@@ -82,7 +82,7 @@ func (t *TrancoList) Download(filePath string) error {
 
 	url := t.URL()
 
-	slog.Debug("downloading ", slog.String("url", url), slog.String("filePath", filePath))
+	slog.Info("downloading", slog.String("from", url), slog.String("to", filePath))
 
 	resp, err := http.Get(url)
 	if err != nil {
