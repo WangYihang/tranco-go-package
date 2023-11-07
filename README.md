@@ -1,5 +1,7 @@
 # GoLang bindings for Tranco List
 
+This is a GoLang bindings for [Tranco List](https://tranco-list.eu/). It can be used as a cli tool or a GoLang module.
+
 ## Cli Installation
 
 ```bash
@@ -13,9 +15,9 @@ Usage:
   tranco [OPTIONS]
 
 Application Options:
-  -i, --input-filepath=           input filepath (default: -)
+  -i, --input-filepath=           input filepath that contains the domains to be queried (default: -)
   -t, --date=                     date of the list (eg: 2023-01-01) (default: 2020-01-01)
-  -s, --second-level-domain-only  only check second level domain
+  -s, --second-level-domain-only  whether to use the list of second-level domains (default: false)
 
 Help Options:
   -h, --help                      Show this help message
@@ -63,3 +65,7 @@ func main() {
 	fmt.Println(rank)
 }
 ```
+
+## Acknowledgement
+
+Special thanks to the authors of the [Tranco List](https://tranco-list.eu/) and the [tranco-python-package](https://github.com/DistriNet/tranco-python-package) for their work, which inspired the creation of this GoLang project.
