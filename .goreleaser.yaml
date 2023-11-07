@@ -7,6 +7,21 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 
+
+builds:
+  - id: "tranco"
+    main: "./cmd/tranco"
+    binary: tranco
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+
+
 archives:
   - 
     id: default

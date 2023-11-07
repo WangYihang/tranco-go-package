@@ -19,3 +19,9 @@
 
 # Go workspace file
 go.work
+
+# Go Releaser
+dist/
+
+# Test files
+*.txt
