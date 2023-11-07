@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/schollz/progressbar/v3"
 )
 
 type TrancoList struct {
@@ -23,7 +25,7 @@ type TrancoList struct {
 }
 
 func NewTrancoList(date string, includeSubdomain bool, scale string) (*TrancoList, error) {
-	slog.Debug("obtain tranco list id", slog.String("date", date), slog.Bool("includeSubdomain", includeSubdomain), slog.String("scale", scale))
+	slog.Debug("obtaining tranco list id", slog.String("date", date), slog.Bool("includeSubdomain", includeSubdomain), slog.String("scale", scale))
 	listID, err := getTrancoListID(date, includeSubdomain)
 	if err != nil {
 		return nil, err
@@ -94,9 +96,13 @@ func (t *TrancoList) Download(filePath string) error {
 	if err != nil {
 		return err
 	}
-
 	defer fd.Close()
-	_, err = io.Copy(fd, resp.Body)
+
+	bar := progressbar.DefaultBytes(
+		resp.ContentLength,
+		"downloading",
+	)
+	_, err = io.Copy(io.MultiWriter(fd, bar), resp.Body)
 	if err != nil {
 		return err
 	}
@@ -106,6 +112,7 @@ func (t *TrancoList) Download(filePath string) error {
 		return err
 	}
 
+	slog.Info("downloaded", slog.String("filepath", filePath))
 	return nil
 }
 
