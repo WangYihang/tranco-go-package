@@ -123,12 +123,17 @@ func (t *TrancoList) DefaultFilePath() string {
 	} else {
 		listType = "sld"
 	}
+	var baseFolder string
+	baseFolder, err := os.UserHomeDir()
+	if err != nil {
+		baseFolder = os.TempDir()
+	}
 	folder := filepath.Join(
-		os.TempDir(),
-		"tranco",
+		baseFolder,
+		".tranco",
 	)
 	filename := fmt.Sprintf("%s_%s_%s_%s.csv", t.Date, listType, t.Scale, t.ID)
-	err := os.MkdirAll(folder, 0755)
+	err = os.MkdirAll(folder, 0755)
 	if err != nil {
 		panic(err)
 	}

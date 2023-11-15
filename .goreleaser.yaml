@@ -10,7 +10,7 @@ before:
 
 builds:
   - id: "tranco"
-    main: "./cmd/tranco"
+    main: "./cmd/client"
     binary: tranco
     env:
       - CGO_ENABLED=0
