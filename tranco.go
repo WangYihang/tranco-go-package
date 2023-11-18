@@ -1,3 +1,4 @@
+//go:generate go run tool/version/generate.go
 package tranco
 
 import (
@@ -10,10 +11,11 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
-        "github.com/WangYihang/tranco/pkg/common"
+	"github.com/WangYihang/tranco/pkg/version"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -23,28 +25,32 @@ type TrancoList struct {
 	IncludeSubdomain bool
 	Scale            string
 	cache            map[string]int64
+	httpClient       *http.Client
+	userAgent        string
 }
 
 func NewTrancoList(date string, includeSubdomain bool, scale string) (*TrancoList, error) {
 	slog.Debug("obtaining tranco list id", slog.String("date", date), slog.Bool("includeSubdomain", includeSubdomain), slog.String("scale", scale))
-	listID, err := getTrancoListID(date, includeSubdomain)
-	if err != nil {
-		return nil, err
-	}
-	slog.Debug("downloading tranco list", slog.String("id", listID))
 	list := TrancoList{
-		ID:               listID,
 		Date:             date,
 		IncludeSubdomain: includeSubdomain,
 		Scale:            scale,
+		httpClient:       &http.Client{},
+		userAgent:        fmt.Sprintf("%s Go-http-client/1.1 tranco-go/%s", strings.Replace(runtime.Version(), "go", "go/", 1), version.PV.Version),
 	}
+	listID, err := list.getTrancoListID(date, includeSubdomain)
+	if err != nil {
+		return nil, err
+	}
+	list.ID = listID
+	slog.Debug("downloading tranco list", slog.String("id", listID))
 	list.Download(list.DefaultFilePath())
 	slog.Debug("tranco list downloaded", slog.String("id", listID))
 	return &list, nil
 }
 
 func (t *TrancoList) URL() string {
-	return "https://tranco-list.eu/download/" + t.ID + "/" + t.Scale
+	return fmt.Sprintf("https://tranco-list.eu/download/%s/%s", t.ID, t.Scale)
 }
 
 func (t *TrancoList) Rank(domain string) (int64, error) {
@@ -78,54 +84,6 @@ func (t *TrancoList) Rank(domain string) (int64, error) {
 	return 0, fmt.Errorf("domain %s not found in tranco list", domain)
 }
 
-func (t *TrancoList) Download(filePath string) error {
-	if _, err := os.Stat(filePath); err == nil {
-		return nil
-	}
-
-	url := t.URL()
-
-	slog.Info("downloading", slog.String("from", url), slog.String("to", filePath))
-
-	client := &http.Client{}
-
-        req, err := http.NewRequest("GET", url, nil)
-        if err != nil {
-                return err
-        }
-
-        req.Header.Set("User-Agent", req.Header.Get("User-Agent") + " tranco-go/" + common.PV.String())
-
-        resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	fd, err := os.CreateTemp("", "")
-	if err != nil {
-		return err
-	}
-	defer fd.Close()
-
-	bar := progressbar.DefaultBytes(
-		resp.ContentLength,
-		"downloading",
-	)
-	_, err = io.Copy(io.MultiWriter(fd, bar), resp.Body)
-	if err != nil {
-		return err
-	}
-
-	err = os.Rename(fd.Name(), filePath)
-	if err != nil {
-		return err
-	}
-
-	slog.Info("downloaded", slog.String("filepath", filePath))
-	return nil
-}
-
 func (t *TrancoList) DefaultFilePath() string {
 	var listType string
 	if t.IncludeSubdomain {
@@ -150,7 +108,61 @@ func (t *TrancoList) DefaultFilePath() string {
 	return filepath.Join(folder, filename)
 }
 
-func getTrancoListID(date string, subdomain bool) (string, error) {
+func (t *TrancoList) newHTTPGetRequest(url string) (*http.Request, error) {
+	request, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		slog.Error("error occurs when creating HTTP request", slog.String("url", url), slog.String("error", err.Error()))
+		return nil, err
+	}
+	request.Header.Set("User-Agent", t.userAgent)
+	return request, nil
+}
+
+func (t *TrancoList) Download(filePath string) error {
+	if _, err := os.Stat(filePath); err == nil {
+		return nil
+	}
+
+	url := t.URL()
+
+	slog.Info("downloading", slog.String("from", url), slog.String("to", filePath))
+
+	request, err := t.newHTTPGetRequest(url)
+	if err != nil {
+		return err
+	}
+
+	response, err := t.httpClient.Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	fd, err := os.CreateTemp("", "")
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
+
+	bar := progressbar.DefaultBytes(
+		response.ContentLength,
+		"downloading",
+	)
+	_, err = io.Copy(io.MultiWriter(fd, bar), response.Body)
+	if err != nil {
+		return err
+	}
+
+	err = os.Rename(fd.Name(), filePath)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("downloaded", slog.String("filepath", filePath))
+	return nil
+}
+
+func (t *TrancoList) getTrancoListID(date string, subdomain bool) (string, error) {
 	urlObject := url.URL{
 		Scheme: "https",
 		Host:   "tranco-list.eu",
@@ -161,16 +173,12 @@ func getTrancoListID(date string, subdomain bool) (string, error) {
 	query.Set("subdomains", strconv.FormatBool(subdomain))
 	urlObject.RawQuery = query.Encode()
 
-	client := &http.Client{}
+	request, err := t.newHTTPGetRequest(urlObject.String())
+	if err != nil {
+		return "", err
+	}
 
-        req, err := http.NewRequest("GET", urlObject.String(), nil)
-        if err != nil {
-                return err
-        }
-
-        req.Header.Set("User-Agent", req.Header.Get("User-Agent") + " tranco-go/" + common.PV.String())
-
-        response, err := client.Do(req)
+	response, err := t.httpClient.Do(request)
 	if err != nil {
 		slog.Error("error occurs when sending HTTP request", slog.String("url", urlObject.String()), slog.String("error", err.Error()))
 		return "", err
@@ -200,6 +208,10 @@ func getTrancoListID(date string, subdomain bool) (string, error) {
 	}
 
 	return string(body), nil
+}
+
+func Version() string {
+	return version.Tag
 }
 
 func parseLine(line string) (int64, string) {

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/WangYihang/tranco"
+	"github.com/WangYihang/tranco/pkg/version"
 )
 
 func ExampleNewTrancoList() {
@@ -28,5 +29,15 @@ func BenchmarkDomainLookup(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		list.Rank("google.com")
+	}
+}
+
+func TestVersion(t *testing.T) {
+	expectedVersion, err := version.GetVersionFromGit()
+	if err != nil {
+		t.Error(err)
+	}
+	if tranco.Version() != expectedVersion {
+		t.Error("version mismatch")
 	}
 }
