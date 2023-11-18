@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/WangYihang/tranco"
+	"github.com/WangYihang/tranco-go-package"
 	"github.com/WangYihang/tranco-go-package/pkg/version"
 )
 
