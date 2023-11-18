@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+        "github.com/WangYihang/tranco/pkg/common"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -86,7 +87,16 @@ func (t *TrancoList) Download(filePath string) error {
 
 	slog.Info("downloading", slog.String("from", url), slog.String("to", filePath))
 
-	resp, err := http.Get(url)
+	client := &http.Client{}
+
+        req, err := http.NewRequest("GET", url, nil)
+        if err != nil {
+                return err
+        }
+
+        req.Header.Set("User-Agent", req.Header.Get("User-Agent") + " tranco-go/" + common.PV.String())
+
+        resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -151,7 +161,16 @@ func getTrancoListID(date string, subdomain bool) (string, error) {
 	query.Set("subdomains", strconv.FormatBool(subdomain))
 	urlObject.RawQuery = query.Encode()
 
-	response, err := http.Get(urlObject.String())
+	client := &http.Client{}
+
+        req, err := http.NewRequest("GET", urlObject.String(), nil)
+        if err != nil {
+                return err
+        }
+
+        req.Header.Set("User-Agent", req.Header.Get("User-Agent") + " tranco-go/" + common.PV.String())
+
+        response, err := client.Do(req)
 	if err != nil {
 		slog.Error("error occurs when sending HTTP request", slog.String("url", urlObject.String()), slog.String("error", err.Error()))
 		return "", err
