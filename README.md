@@ -5,7 +5,7 @@ This is a GoLang bindings for [Tranco List](https://tranco-list.eu/). It can be 
 ## Cli Installation
 
 ```bash
-go install github.com/WangYihang/tranco/cmd/tranco@latest
+go install github.com/WangYihang/tranco-go-package/cmd/tranco@latest
 ```
 
 ## Cli Usage
@@ -40,7 +40,7 @@ $ cat input.txt | tranco -t 2023-10-10
 ## Module Installation
 
 ```bash
-go get github.com/WangYihang/tranco
+go get github.com/WangYihang/tranco-go-package
 ```
 
 ## Module Usage
@@ -50,7 +50,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/WangYihang/tranco"
+	tranco "github.com/WangYihang/tranco-go-package"
 )
 
 func main() {

@@ -1,4 +1,4 @@
-module github.com/WangYihang/tranco
+module github.com/WangYihang/tranco-go-package
 
 go 1.21.3
 
