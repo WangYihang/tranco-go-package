@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/WangYihang/tranco"
-	"github.com/WangYihang/tranco/pkg/version"
+	"github.com/WangYihang/tranco-go-package/pkg/version"
 )
 
 func ExampleNewTrancoList() {

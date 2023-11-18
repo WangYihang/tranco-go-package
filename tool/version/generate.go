@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/WangYihang/tranco/pkg/version"
+	"github.com/WangYihang/tranco-go-package/pkg/version"
 )
 
 func main() {

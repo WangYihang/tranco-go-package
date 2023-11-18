@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/WangYihang/tranco/pkg/version"
+	"github.com/WangYihang/tranco-go-package/pkg/version"
 	"github.com/schollz/progressbar/v3"
 )
 
