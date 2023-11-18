@@ -12,7 +12,7 @@ import (
 var PV ProgramVersion
 
 func init() {
-	PV.Tag, _ = GetVersionFromGit()
+	PV.Tag = Tag
 	PV.Version = Version
 	PV.CommitHash = CommitHash
 	PV.BuildTime = BuildTime
