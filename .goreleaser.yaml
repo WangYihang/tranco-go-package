@@ -24,7 +24,7 @@ builds:
 
   - id: "tranco-server"
     main: "./cmd/server"
-    binary: tranco
+    binary: tranco-server
     env:
       - CGO_ENABLED=0
     goos:

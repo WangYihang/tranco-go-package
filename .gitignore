@@ -25,3 +25,6 @@ dist/
 
 # Test files
 *.txt
+
+# Database files
+data/
