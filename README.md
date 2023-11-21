@@ -37,6 +37,12 @@ $ cat input.txt | tranco -t 2023-10-10
 {"domain":"pku.edu.cn","rank":4338,"date":"2023-10-10"}
 ```
 
+## Server Installation
+
+```bash
+go install github.com/WangYihang/tranco-go-package/cmd/tranco-server@latest
+```
+
 ## Module Installation
 
 ```bash

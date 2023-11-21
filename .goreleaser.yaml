@@ -9,7 +9,7 @@ before:
 
 builds:
   - id: "tranco"
-    main: "./cmd/client"
+    main: "./cmd/tranco"
     binary: tranco
     env:
       - CGO_ENABLED=0
@@ -23,7 +23,7 @@ builds:
       - -s -w -X github.com/WangYihang/tranco-go-package/pkg/version.Version={{.Version}} -X github.com/WangYihang/tranco-go-package/pkg/version.BuildTime={{.Date}} -X github.com/WangYihang/tranco-go-package/pkg/version.CommitHash={{.Commit}} -X main.builtBy=goreleaser'
 
   - id: "tranco-server"
-    main: "./cmd/server"
+    main: "./cmd/tranco-server"
     binary: tranco-server
     env:
       - CGO_ENABLED=0
