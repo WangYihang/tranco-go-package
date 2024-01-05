@@ -5,7 +5,7 @@ This is a GoLang bindings for [Tranco List](https://tranco-list.eu/). It can be 
 ## Cli Installation
 
 ```bash
-go install github.com/WangYihang/tranco-go-package/cmd/tranco@latest
+go install github.com/WangYihang/tranco-go-package/cmd/tranco
 ```
 
 ## Cli Usage
