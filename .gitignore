@@ -28,3 +28,4 @@ dist/
 
 # Database files
 data/
+.tranco/

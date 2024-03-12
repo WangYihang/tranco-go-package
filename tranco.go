@@ -134,22 +134,17 @@ func (t *TrancoList) Download(filePath string) error {
 	}
 	defer response.Body.Close()
 
-	fd, err := os.CreateTemp("", "")
+	fd, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
-	defer fd.Close()
 
 	bar := progressbar.DefaultBytes(
 		response.ContentLength,
 		"downloading",
 	)
-	_, err = io.Copy(io.MultiWriter(fd, bar), response.Body)
-	if err != nil {
-		return err
-	}
 
-	err = os.Rename(fd.Name(), filePath)
+	_, err = io.Copy(io.MultiWriter(fd, bar), response.Body)
 	if err != nil {
 		return err
 	}
