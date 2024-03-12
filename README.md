@@ -2,6 +2,16 @@
 
 This is a GoLang bindings for [Tranco List](https://tranco-list.eu/). It can be used as a cli tool or a GoLang module.
 
+## Docker Usage
+
+```bash
+docker pull ghcr.io/wangyihang/tranco-go-package:main
+```
+
+```bash
+echo google.com | docker run -i -v $HOME/.tranco:/root/.tranco ghcr.io/wangyihang/tranco-go-package:main
+```
+
 ## Cli Installation
 
 ```bash
