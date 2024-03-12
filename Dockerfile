@@ -1,12 +1,10 @@
-FROM golang:1.21
-WORKDIR /app/
-COPY ./go.mod /app/
-COPY ./go.sum /app/
-COPY ./cmd/ /app/cmd/
-COPY ./pkg/ /app/pkg/
-COPY ./tool/ /app/tool/
-RUN go env -w GO111MODULE=on
-RUN go env -w GOPROXY=https://goproxy.cn,direct
-RUN go mod download
-RUN go build -o tranco-server /app/cmd/server/main.go
-ENTRYPOINT [ "/app/tranco-server" ]
+FROM golang:1.22 AS builder
+RUN go install github.com/goreleaser/goreleaser@latest
+WORKDIR /app
+COPY ./.git/ ./.git/
+RUN git reset --hard HEAD
+RUN goreleaser build --clean --id=tranco --snapshot
+
+FROM scratch
+COPY --from=builder /app/dist/tranco_linux_amd64_v1/tranco /usr/local/bin/tranco
+ENTRYPOINT [ "/usr/local/bin/tranco" ]
