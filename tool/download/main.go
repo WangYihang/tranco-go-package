@@ -32,7 +32,7 @@ func init() {
 }
 
 func main() {
-	_, err := tranco.NewTrancoList(listDate.Format("2006-01-02"), cliOptions.IncludeSubdomains, "full")
+	_, err := tranco.NewTrancoList(listDate.Format("2006-01-02"), cliOptions.IncludeSubdomains, "full", ".tranco")
 	if err != nil {
 		slog.Error("error occured while parsing date", slog.String("date", cliOptions.Date), slog.String("error", err.Error()))
 		os.Exit(1)

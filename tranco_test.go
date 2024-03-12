@@ -9,7 +9,7 @@ import (
 )
 
 func ExampleNewTrancoList() {
-	list, err := tranco.NewTrancoList("2019-04-30", false, "1000")
+	list, err := tranco.NewTrancoList("2019-04-30", false, "1000", ".tranco")
 	if err != nil {
 		panic(err)
 	}
@@ -22,7 +22,7 @@ func ExampleNewTrancoList() {
 }
 
 func BenchmarkDomainLookup(b *testing.B) {
-	list, err := tranco.NewTrancoList("2019-04-30", false, "1000")
+	list, err := tranco.NewTrancoList("2019-04-30", false, "1000", ".tranco")
 	if err != nil {
 		panic(err)
 	}

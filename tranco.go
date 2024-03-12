@@ -24,12 +24,13 @@ type TrancoList struct {
 	Date             string
 	IncludeSubdomain bool
 	Scale            string
+	CacheFolder      string
 	cache            map[string]int64
 	httpClient       *http.Client
 	userAgent        string
 }
 
-func NewTrancoList(date string, includeSubdomain bool, scale string) (*TrancoList, error) {
+func NewTrancoList(date string, includeSubdomain bool, scale string, cacheFolder string) (*TrancoList, error) {
 	slog.Debug("obtaining tranco list id", slog.String("date", date), slog.Bool("includeSubdomain", includeSubdomain), slog.String("scale", scale))
 	list := TrancoList{
 		Date:             date,
@@ -37,6 +38,7 @@ func NewTrancoList(date string, includeSubdomain bool, scale string) (*TrancoLis
 		Scale:            scale,
 		httpClient:       &http.Client{},
 		userAgent:        fmt.Sprintf("%s Go-http-client/1.1 tranco-go/%s", strings.Replace(runtime.Version(), "go", "go/", 1), version.PV.Version),
+		CacheFolder:      cacheFolder,
 	}
 	listID, err := list.getTrancoListID(date, includeSubdomain)
 	if err != nil {
@@ -44,7 +46,10 @@ func NewTrancoList(date string, includeSubdomain bool, scale string) (*TrancoLis
 	}
 	list.ID = listID
 	slog.Debug("downloading tranco list", slog.String("id", listID))
-	list.Download(list.DefaultFilePath())
+	err = list.Download(list.DefaultFilePath())
+	if err != nil {
+		slog.Error("error occurs when downloading tranco list", slog.String("id", listID), slog.String("error", err.Error()))
+	}
 	slog.Debug("tranco list downloaded", slog.String("id", listID))
 	return &list, nil
 }
@@ -91,21 +96,12 @@ func (t *TrancoList) DefaultFilePath() string {
 	} else {
 		listType = "sld"
 	}
-	var baseFolder string
-	baseFolder, err := os.UserHomeDir()
-	if err != nil {
-		baseFolder = os.TempDir()
-	}
-	folder := filepath.Join(
-		baseFolder,
-		".tranco",
-	)
 	filename := fmt.Sprintf("%s_%s_%s_%s.csv", t.Date, listType, t.Scale, t.ID)
-	err = os.MkdirAll(folder, 0755)
+	err := os.MkdirAll(t.CacheFolder, 0755)
 	if err != nil {
 		panic(err)
 	}
-	return filepath.Join(folder, filename)
+	return filepath.Join(t.CacheFolder, filename)
 }
 
 func (t *TrancoList) newHTTPGetRequest(url string) (*http.Request, error) {

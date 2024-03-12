@@ -18,6 +18,7 @@ type Options struct {
 	Date                  string `short:"d" long:"date" description:"date of the list" required:"true" default:"2022-01-01"`
 	SecondLevelDomainOnly bool   `short:"s" long:"second-level-domain-only" description:"only check second level domain"`
 	Version               bool   `short:"v" long:"version" description:"display version"`
+	CacheFolder           string `short:"c" long:"cache-folder" description:"cache folder" default:".tranco"`
 }
 
 var cliOptions = Options{}
@@ -43,7 +44,7 @@ func init() {
 }
 
 func main() {
-	list, err := tranco.NewTrancoList(listDate.Format("2006-01-02"), !cliOptions.SecondLevelDomainOnly, "full")
+	list, err := tranco.NewTrancoList(listDate.Format("2006-01-02"), !cliOptions.SecondLevelDomainOnly, "full", cliOptions.CacheFolder)
 	if err != nil {
 		slog.Error("error occured while parsing date", slog.String("date", cliOptions.Date), slog.String("error", err.Error()))
 		os.Exit(1)

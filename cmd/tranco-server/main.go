@@ -15,7 +15,7 @@ func main() {
 		list, ok := trancoLists[date]
 		if !ok {
 			var err error
-			list, err = tranco.NewTrancoList(date, true, "full")
+			list, err = tranco.NewTrancoList(date, true, "full", ".tranco")
 			if err != nil {
 				c.JSON(500, gin.H{
 					"message": "error occured while parsing date",
