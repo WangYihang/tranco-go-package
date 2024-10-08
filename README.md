@@ -12,6 +12,35 @@ docker pull ghcr.io/wangyihang/tranco-go-package:main
 echo google.com | docker run -i -v $HOME/.tranco:/root/.tranco ghcr.io/wangyihang/tranco-go-package:main
 ```
 
+> Download the list for a certain date (e.g. 2024-10-01).
+
+```bash
+docker run -v .:/root/.tranco/ \
+    ghcr.io/wangyihang/tranco-go-package:main \
+    --date 2024-10-01 \
+    --second-level-domain-only
+```
+
+```bash
+$ ls 2024-10-01_sld_full_XJNYN.csv
+2024-10-01_sld_full_XJNYN.csv
+
+$ wc -l 2024-10-01_sld_full_XJNYN.csv
+ 4452127 2024-10-01_sld_full_XJNYN.csv
+
+$ head 2024-10-01_sld_full_XJNYN.csv
+1,google.com
+2,amazonaws.com
+3,microsoft.com
+4,facebook.com
+5,akamai.net
+6,apple.com
+7,root-servers.net
+8,a-msedge.net
+9,youtube.com
+10,azure.com
+```
+
 ## Cli Installation
 
 ```bash
