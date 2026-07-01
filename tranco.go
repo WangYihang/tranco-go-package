@@ -9,6 +9,7 @@ package tranco
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -36,6 +37,12 @@ const defaultHTTPTimeout = 5 * time.Minute
 // Tests construct a TrancoList directly and set baseURL to a local
 // httptest server instead of talking to the real API.
 const defaultBaseURL = "https://tranco-list.eu"
+
+// ErrDomainNotFound is the sentinel wrapped by the error Rank returns when
+// the queried domain does not appear in the list. Callers that need to
+// distinguish "not found" from an I/O or network failure should check for
+// it with errors.Is.
+var ErrDomainNotFound = errors.New("domain not found in tranco list")
 
 // TrancoList represents one dated Tranco List (e.g. "the full list for
 // 2024-10-01"). Create one with NewTrancoList, then look up ranks with
@@ -131,7 +138,7 @@ func (t *TrancoList) Rank(domain string) (int64, error) {
 	// so there's no need to re-scan the (potentially multi-million-line)
 	// file again just to reach the same conclusion.
 	if t.loaded {
-		return 0, fmt.Errorf("domain %s not found in tranco list", domain)
+		return 0, fmt.Errorf("%w: %s", ErrDomainNotFound, domain)
 	}
 
 	filePath, err := t.DefaultFilePath()
@@ -165,7 +172,7 @@ func (t *TrancoList) Rank(domain string) (int64, error) {
 	}
 	t.loaded = true
 
-	return 0, fmt.Errorf("domain %s not found in tranco list", domain)
+	return 0, fmt.Errorf("%w: %s", ErrDomainNotFound, domain)
 }
 
 // DefaultFilePath returns the local path where this list's CSV file is (or

@@ -1,6 +1,7 @@
 package tranco
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -174,10 +175,21 @@ func TestRank(t *testing.T) {
 		t.Errorf("Rank(%q) = %d, want %d", "example.com", rank, 2)
 	}
 
-	if _, err := list.Rank("missing.com"); err == nil {
+	_, err = list.Rank("missing.com")
+	if err == nil {
 		t.Fatal("Rank() expected an error for a domain not in the list")
+	}
+	if !errors.Is(err, ErrDomainNotFound) {
+		t.Errorf("Rank() error = %v, want it to wrap ErrDomainNotFound", err)
 	}
 	if !list.loaded {
 		t.Error("Rank() should mark the list as fully loaded after scanning through EOF")
+	}
+
+	// A second lookup for a different absent domain should short-circuit via
+	// the loaded cache rather than re-scanning, and still wrap the sentinel.
+	_, err = list.Rank("still-missing.com")
+	if !errors.Is(err, ErrDomainNotFound) {
+		t.Errorf("Rank() error = %v, want it to wrap ErrDomainNotFound", err)
 	}
 }
