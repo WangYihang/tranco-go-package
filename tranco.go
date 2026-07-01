@@ -215,13 +215,12 @@ func (t *TrancoList) getTrancoListID(date string, subdomain bool) (string, error
 		slog.Error("error occurs when sending HTTP request", slog.String("url", urlObject.String()), slog.String("error", err.Error()))
 		return "", err
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
 		slog.Error("error occurs when sending HTTP request", slog.String("url", urlObject.String()), slog.Int("statusCode", response.StatusCode))
 		return "", fmt.Errorf("HTTP status code %d", response.StatusCode)
 	}
-
-	defer response.Body.Close()
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
@@ -230,12 +229,12 @@ func (t *TrancoList) getTrancoListID(date string, subdomain bool) (string, error
 	}
 
 	if bytes.Equal(body, []byte("null")) {
-		slog.Error("no list id for %s, api returns null", slog.String("date", date))
+		slog.Error("no list id, api returns null", slog.String("date", date))
 		return "", fmt.Errorf("no list id for %s, api returns null", date)
 	}
 
 	if bytes.Equal(body, []byte("500 Internal Server Error")) {
-		slog.Error("no list id for %s, api returns 500 Internal Server Error", slog.String("date", date))
+		slog.Error("no list id, api returns 500 Internal Server Error", slog.String("date", date))
 		return "", fmt.Errorf("no list id for %s, api returns 500 Internal Server Error", date)
 	}
 
