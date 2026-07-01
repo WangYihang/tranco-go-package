@@ -54,9 +54,11 @@ Usage:
   tranco [OPTIONS]
 
 Application Options:
-  -i, --input-filepath=           input filepath that contains the domains to be queried (default: -)
-  -t, --date=                     date of the list (eg: 2023-01-01) (default: 2020-01-01)
-  -s, --second-level-domain-only  whether to use the list of second-level domains (default: false)
+  -i, --input-filepath=           input filepath (default: -)
+  -d, --date=                     date of the list (default: 2022-01-01)
+  -s, --second-level-domain-only  only check second level domain
+  -v, --version                   display version
+  -c, --cache-folder=             cache folder (default: .tranco)
 
 Help Options:
   -h, --help                      Show this help message
@@ -69,7 +71,7 @@ baidu.com
 tsinghua.edu.cn
 pku.edu.cn
 
-$ cat input.txt | tranco -t 2023-10-10
+$ cat input.txt | tranco -d 2023-10-10
 {"domain":"google.com","rank":1,"date":"2023-10-10"}
 {"domain":"baidu.com","rank":138,"date":"2023-10-10"}
 {"domain":"tsinghua.edu.cn","rank":5302,"date":"2023-10-10"}
@@ -99,7 +101,7 @@ import (
 )
 
 func main() {
-	list, err := tranco.NewTrancoList("2019-04-30", false, "1000")
+	list, err := tranco.NewTrancoList("2019-04-30", false, "1000", ".tranco")
 	if err != nil {
 		panic(err)
 	}
