@@ -26,6 +26,12 @@ import (
 // cannot block callers forever.
 const defaultHTTPTimeout = 5 * time.Minute
 
+// defaultBaseURL is the Tranco List origin used whenever TrancoList.baseURL
+// is unset, which is always the case for lists built via NewTrancoList.
+// Tests construct a TrancoList directly and set baseURL to a local
+// httptest server instead of talking to the real API.
+const defaultBaseURL = "https://tranco-list.eu"
+
 type TrancoList struct {
 	ID               string
 	Date             string
@@ -37,6 +43,14 @@ type TrancoList struct {
 	cacheMu          sync.Mutex
 	httpClient       *http.Client
 	userAgent        string
+	baseURL          string
+}
+
+func (t *TrancoList) resolvedBaseURL() string {
+	if t.baseURL != "" {
+		return t.baseURL
+	}
+	return defaultBaseURL
 }
 
 func NewTrancoList(date string, includeSubdomain bool, scale string, cacheFolder string) (*TrancoList, error) {
@@ -69,7 +83,7 @@ func NewTrancoList(date string, includeSubdomain bool, scale string, cacheFolder
 }
 
 func (t *TrancoList) URL() string {
-	return fmt.Sprintf("https://tranco-list.eu/download/%s/%s", t.ID, t.Scale)
+	return fmt.Sprintf("%s/download/%s/%s", t.resolvedBaseURL(), t.ID, t.Scale)
 }
 
 func (t *TrancoList) Rank(domain string) (int64, error) {
@@ -226,11 +240,11 @@ func (t *TrancoList) Download(filePath string) error {
 }
 
 func (t *TrancoList) getTrancoListID(date string, subdomain bool) (string, error) {
-	urlObject := url.URL{
-		Scheme: "https",
-		Host:   "tranco-list.eu",
-		Path:   "daily_list_id",
+	urlObject, err := url.Parse(t.resolvedBaseURL())
+	if err != nil {
+		return "", err
 	}
+	urlObject.Path = "daily_list_id"
 	query := urlObject.Query()
 	query.Set("date", date)
 	query.Set("subdomains", strconv.FormatBool(subdomain))
