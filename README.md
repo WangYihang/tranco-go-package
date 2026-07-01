@@ -17,8 +17,7 @@ echo google.com | docker run -i -v $HOME/.tranco:/root/.tranco ghcr.io/wangyihan
 ```bash
 docker run -v .:/root/.tranco/ \
     ghcr.io/wangyihang/tranco-go-package:main \
-    --date 2024-10-01 \
-    --second-level-domain-only
+    --date 2024-10-01
 ```
 
 ```bash
@@ -54,15 +53,20 @@ Usage:
   tranco [OPTIONS]
 
 Application Options:
-  -i, --input-filepath=           input filepath (default: -)
-  -d, --date=                     date of the list (default: 2022-01-01)
-  -s, --second-level-domain-only  only check second level domain
-  -v, --version                   display version
-  -c, --cache-folder=             cache folder (default: .tranco)
+  -i, --input-filepath=     input filepath (default: -)
+  -d, --date=               date of the list (default: 2022-01-01)
+      --include-subdomains  use the full (subdomain-inclusive) list instead of
+                            second-level-domains only
+  -v, --version             display version
+  -c, --cache-folder=       cache folder (default: .tranco)
 
 Help Options:
-  -h, --help                      Show this help message
+  -h, --help                Show this help message
 ```
+
+By default, `tranco` queries the second-level-domain list (smaller, faster).
+Pass `--include-subdomains` to query the full subdomain-inclusive list
+instead.
 
 ```bash
 $ cat input.txt                                                    
