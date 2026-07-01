@@ -82,6 +82,15 @@ $ cat input.txt | tranco -d 2023-10-10
 {"domain":"pku.edu.cn","rank":4338,"date":"2023-10-10"}
 ```
 
+A domain that isn't found in the list doesn't stop the batch - it's reported
+with an `error` field instead of `rank`, and the remaining domains still get
+processed:
+
+```bash
+$ echo "not-a-real-domain-example.invalid" | tranco -d 2023-10-10
+{"date":"2023-10-10","domain":"not-a-real-domain-example.invalid","error":"domain not found in tranco list: not-a-real-domain-example.invalid"}
+```
+
 ## Server Installation
 
 ```bash

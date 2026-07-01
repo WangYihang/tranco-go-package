@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -51,14 +52,23 @@ func main() {
 	}
 	for domain := range util.Readlines(cliOptions.InputFilepath) {
 		rank, err := list.Rank(domain)
-		if err != nil {
-			slog.Error("error occured while querying rank", slog.String("domain", domain), slog.String("error", err.Error()))
-			os.Exit(1)
-		}
 		result := map[string]interface{}{
 			"domain": domain,
-			"rank":   rank,
 			"date":   listDate.Format("2006-01-02"),
+		}
+		switch {
+		case errors.Is(err, tranco.ErrDomainNotFound):
+			// A single unranked domain shouldn't abort an entire batch;
+			// record it in the output and move on to the next one.
+			slog.Warn("domain not found in tranco list", slog.String("domain", domain))
+			result["error"] = err.Error()
+		case err != nil:
+			// Any other error (I/O, cache corruption, etc.) will likely
+			// recur for every remaining domain, so it's still fatal.
+			slog.Error("error occured while querying rank", slog.String("domain", domain), slog.String("error", err.Error()))
+			os.Exit(1)
+		default:
+			result["rank"] = rank
 		}
 		data, err := json.Marshal(result)
 		if err != nil {
