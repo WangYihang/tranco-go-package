@@ -32,6 +32,7 @@ type TrancoList struct {
 	Scale            string
 	CacheFolder      string
 	cache            map[string]int64
+	loaded           bool
 	httpClient       *http.Client
 	userAgent        string
 }
@@ -79,6 +80,13 @@ func (t *TrancoList) Rank(domain string) (int64, error) {
 		return rank, nil
 	}
 
+	// The whole list has already been scanned once and domain wasn't in it,
+	// so there's no need to re-scan the (potentially multi-million-line)
+	// file again just to reach the same conclusion.
+	if t.loaded {
+		return 0, fmt.Errorf("domain %s not found in tranco list", domain)
+	}
+
 	filePath, err := t.DefaultFilePath()
 	if err != nil {
 		return 0, err
@@ -108,6 +116,7 @@ func (t *TrancoList) Rank(domain string) (int64, error) {
 			return currentRank, nil
 		}
 	}
+	t.loaded = true
 
 	return 0, fmt.Errorf("domain %s not found in tranco list", domain)
 }
