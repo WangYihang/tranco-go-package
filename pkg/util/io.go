@@ -1,3 +1,5 @@
+// Package util provides small filesystem/IO helpers shared by tranco's
+// command-line tools.
 package util
 
 import (
@@ -7,6 +9,9 @@ import (
 	"strings"
 )
 
+// Readlines streams non-empty, whitespace-trimmed lines from filePath (or
+// from stdin, if filePath is "-") on the returned channel, which is closed
+// once the file is exhausted or an error occurs.
 func Readlines(filePath string) chan string {
 	out := make(chan string)
 	go func() {

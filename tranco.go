@@ -1,4 +1,9 @@
 //go:generate go run tool/version/generate.go
+
+// Package tranco provides a Go client for the Tranco List
+// (https://tranco-list.eu/), a research-oriented top-sites ranking. It looks
+// up the list ID for a given date, downloads and caches the corresponding
+// CSV file, and answers domain rank queries against it.
 package tranco
 
 import (
@@ -32,18 +37,30 @@ const defaultHTTPTimeout = 5 * time.Minute
 // httptest server instead of talking to the real API.
 const defaultBaseURL = "https://tranco-list.eu"
 
+// TrancoList represents one dated Tranco List (e.g. "the full list for
+// 2024-10-01"). Create one with NewTrancoList, then look up ranks with
+// Rank. A TrancoList is safe for concurrent use.
 type TrancoList struct {
-	ID               string
-	Date             string
+	// ID is the Tranco-assigned list ID resolved from Date/IncludeSubdomain
+	// by NewTrancoList (e.g. "XJNYN").
+	ID string
+	// Date is the list's date in "2006-01-02" format.
+	Date string
+	// IncludeSubdomain selects the full-domain (fqdn) list when true, or the
+	// second-level-domain (sld) list when false.
 	IncludeSubdomain bool
-	Scale            string
-	CacheFolder      string
-	cache            map[string]int64
-	loaded           bool
-	cacheMu          sync.Mutex
-	httpClient       *http.Client
-	userAgent        string
-	baseURL          string
+	// Scale is the requested list size, e.g. "1000" or "full".
+	Scale string
+	// CacheFolder is where the downloaded list CSV is cached. A relative
+	// path is resolved under the user's home directory; an absolute path is
+	// used as-is. Defaults to ".tranco" when empty.
+	CacheFolder string
+	cache       map[string]int64
+	loaded      bool
+	cacheMu     sync.Mutex
+	httpClient  *http.Client
+	userAgent   string
+	baseURL     string
 }
 
 func (t *TrancoList) resolvedBaseURL() string {
@@ -53,6 +70,10 @@ func (t *TrancoList) resolvedBaseURL() string {
 	return defaultBaseURL
 }
 
+// NewTrancoList resolves the Tranco list ID for the given date and
+// downloads it (or reuses an already-downloaded copy from cacheFolder). See
+// TrancoList's field docs for what date, includeSubdomain, scale, and
+// cacheFolder mean.
 func NewTrancoList(date string, includeSubdomain bool, scale string, cacheFolder string) (*TrancoList, error) {
 	slog.Debug("obtaining tranco list id", slog.String("date", date), slog.Bool("includeSubdomain", includeSubdomain), slog.String("scale", scale))
 	list := TrancoList{
@@ -82,10 +103,14 @@ func NewTrancoList(date string, includeSubdomain bool, scale string, cacheFolder
 	return &list, nil
 }
 
+// URL returns the download URL for this list's CSV file.
 func (t *TrancoList) URL() string {
 	return fmt.Sprintf("%s/download/%s/%s", t.resolvedBaseURL(), t.ID, t.Scale)
 }
 
+// Rank returns domain's rank in the list, reading and caching entries from
+// the cached CSV file as needed. It returns an error if domain isn't found
+// in the list, or if the list file can't be read.
 func (t *TrancoList) Rank(domain string) (int64, error) {
 	// Rank() may be called concurrently for the same *TrancoList (e.g. from
 	// tranco-server's HTTP handlers), and the cache map below is not safe
@@ -143,6 +168,8 @@ func (t *TrancoList) Rank(domain string) (int64, error) {
 	return 0, fmt.Errorf("domain %s not found in tranco list", domain)
 }
 
+// DefaultFilePath returns the local path where this list's CSV file is (or
+// will be) cached, creating CacheFolder if necessary.
 func (t *TrancoList) DefaultFilePath() (string, error) {
 	var listType string
 	if t.IncludeSubdomain {
@@ -181,6 +208,10 @@ func (t *TrancoList) newHTTPGetRequest(url string) (*http.Request, error) {
 	return request, nil
 }
 
+// Download fetches this list's CSV file to filePath, unless a file already
+// exists there. The download is written atomically: a partial or failed
+// download never leaves a file at filePath that a later call would mistake
+// for a completed one.
 func (t *TrancoList) Download(filePath string) error {
 	if _, err := os.Stat(filePath); err == nil {
 		return nil
@@ -286,6 +317,7 @@ func (t *TrancoList) getTrancoListID(date string, subdomain bool) (string, error
 	return string(body), nil
 }
 
+// Version returns this program's version tag, as recorded at build time.
 func Version() string {
 	return version.Tag
 }
