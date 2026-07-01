@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"sync"
+	"time"
 
 	"github.com/WangYihang/tranco-go-package"
 	"github.com/gin-gonic/gin"
@@ -18,6 +20,14 @@ func main() {
 	r.GET("/rank/:domain/date/:date", func(c *gin.Context) {
 		domain := c.Param("domain")
 		date := c.Param("date")
+
+		if _, err := time.Parse("2006-01-02", date); err != nil {
+			c.JSON(400, gin.H{
+				"message": "invalid date, expected format YYYY-MM-DD",
+				"status":  "error",
+			})
+			return
+		}
 
 		trancoListsMu.Lock()
 		list, ok := trancoLists[date]
@@ -50,7 +60,14 @@ func main() {
 		}
 
 		rank, err := list.Rank(domain)
-		if err != nil {
+		switch {
+		case errors.Is(err, tranco.ErrDomainNotFound):
+			c.JSON(404, gin.H{
+				"message": "domain not found in tranco list",
+				"status":  "error",
+			})
+			return
+		case err != nil:
 			c.JSON(500, gin.H{
 				"message": "error occured while querying rank",
 				"status":  "error",
