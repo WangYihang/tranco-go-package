@@ -24,12 +24,15 @@ const maxCachedLists = 16
 // to finish when asked to shut down before forcing the shutdown anyway.
 const shutdownTimeout = 10 * time.Second
 
-func main() {
-	trancoLists := newTrancoListCache(maxCachedLists)
+// newRouter builds the server's route table. Split out from main so tests
+// can exercise it directly via httptest without binding a real port.
+func newRouter(trancoLists *trancoListCache) *gin.Engine {
 	var listGroup singleflight.Group
 
-	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
+	r.GET("/healthz", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 	r.GET("/rank/:domain/date/:date", func(c *gin.Context) {
 		domain := c.Param("domain")
 		date := c.Param("date")
@@ -89,6 +92,13 @@ func main() {
 			"rank":    rank,
 		})
 	})
+
+	return r
+}
+
+func main() {
+	gin.SetMode(gin.ReleaseMode)
+	r := newRouter(newTrancoListCache(maxCachedLists))
 
 	addr := ":8080"
 	if port := os.Getenv("PORT"); port != "" {
