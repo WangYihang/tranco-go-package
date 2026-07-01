@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/WangYihang/tranco-go-package/pkg/version"
@@ -33,6 +34,7 @@ type TrancoList struct {
 	CacheFolder      string
 	cache            map[string]int64
 	loaded           bool
+	cacheMu          sync.Mutex
 	httpClient       *http.Client
 	userAgent        string
 }
@@ -71,6 +73,12 @@ func (t *TrancoList) URL() string {
 }
 
 func (t *TrancoList) Rank(domain string) (int64, error) {
+	// Rank() may be called concurrently for the same *TrancoList (e.g. from
+	// tranco-server's HTTP handlers), and the cache map below is not safe
+	// for concurrent read/write without this lock.
+	t.cacheMu.Lock()
+	defer t.cacheMu.Unlock()
+
 	// load from cache
 	if t.cache == nil {
 		t.cache = make(map[string]int64)
