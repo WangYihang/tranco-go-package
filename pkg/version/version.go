@@ -1,11 +1,10 @@
 package version
 
 import (
+	"bytes"
 	"fmt"
-	"log"
-
-	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
+	"os/exec"
+	"strings"
 )
 
 // PV is the current version object of the program
@@ -31,42 +30,35 @@ func (v ProgramVersion) Short() string {
 	return v.Tag
 }
 
+// GetVersionFromGit derives a "<latest-tag>-<short-commit>" version string
+// from the local git repository by shelling out to the git CLI. This is used
+// by `go generate` (to refresh pkg/version/default.go before a release) and
+// by TestVersion; it intentionally avoids depending on a full git
+// implementation (with its SSH/crypto transitive dependencies) just to read
+// a tag and a commit hash.
 func GetVersionFromGit() (string, error) {
-	r, err := git.PlainOpen(".")
+	tag, err := runGit("describe", "--tags", "--abbrev=0")
 	if err != nil {
-		log.Printf("Error opening git repository: %v", err)
+		return "", fmt.Errorf("no tags found: %w", err)
+	}
+
+	commitHash, err := runGit("rev-parse", "HEAD")
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve HEAD commit: %w", err)
+	}
+	if len(commitHash) < 8 {
+		return "", fmt.Errorf("unexpected commit hash %q", commitHash)
+	}
+
+	return fmt.Sprintf("%s-%s", tag, commitHash[:8]), nil
+}
+
+func runGit(args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	if err := cmd.Run(); err != nil {
 		return "", err
 	}
-
-	tagRefs, err := r.Tags()
-	if err != nil {
-		log.Printf("Error getting tags: %v", err)
-		return "", err
-	}
-
-	var latestTag *plumbing.Reference
-	err = tagRefs.ForEach(func(t *plumbing.Reference) error {
-		latestTag = t
-		return nil
-	})
-	if err != nil {
-		log.Printf("Error iterating tags: %v", err)
-		return "", err
-	}
-
-	var tag string
-	if latestTag == nil {
-		return "", fmt.Errorf("no tags found")
-	}
-	tag = latestTag.Name().Short()
-
-	head, err := r.Head()
-	if err != nil {
-		log.Printf("Error getting HEAD: %v", err)
-		return "", err
-	}
-	commitHash := head.Hash().String()
-
-	fullVersion := fmt.Sprintf("%s-%s", tag, commitHash[:8])
-	return fullVersion, nil
+	return strings.TrimSpace(stdout.String()), nil
 }
