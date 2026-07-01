@@ -46,7 +46,7 @@ func init() {
 func main() {
 	list, err := tranco.NewTrancoList(listDate.Format("2006-01-02"), !cliOptions.SecondLevelDomainOnly, "full", cliOptions.CacheFolder)
 	if err != nil {
-		slog.Error("error occured while parsing date", slog.String("date", cliOptions.Date), slog.String("error", err.Error()))
+		slog.Error("error occured while obtaining tranco list", slog.String("date", cliOptions.Date), slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	for domain := range util.Readlines(cliOptions.InputFilepath) {
