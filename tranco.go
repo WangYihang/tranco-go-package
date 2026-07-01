@@ -156,7 +156,15 @@ func (t *TrancoList) Download(filePath string) error {
 	}
 	defer response.Body.Close()
 
-	fd, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY, 0644)
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected HTTP status code %d when downloading %s", response.StatusCode, url)
+	}
+
+	// Download to a temporary file first and rename on success, so a failed
+	// or interrupted download never leaves a partial file at filePath (which
+	// would otherwise be mistaken for a complete, cached download later on).
+	tmpFilePath := filePath + ".tmp"
+	fd, err := os.OpenFile(tmpFilePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
@@ -166,8 +174,19 @@ func (t *TrancoList) Download(filePath string) error {
 		"downloading",
 	)
 
-	_, err = io.Copy(io.MultiWriter(fd, bar), response.Body)
-	if err != nil {
+	_, copyErr := io.Copy(io.MultiWriter(fd, bar), response.Body)
+	closeErr := fd.Close()
+
+	if copyErr != nil {
+		os.Remove(tmpFilePath)
+		return copyErr
+	}
+	if closeErr != nil {
+		os.Remove(tmpFilePath)
+		return closeErr
+	}
+
+	if err := os.Rename(tmpFilePath, filePath); err != nil {
 		return err
 	}
 
