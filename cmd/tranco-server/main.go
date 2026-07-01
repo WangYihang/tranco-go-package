@@ -5,35 +5,49 @@ import (
 
 	"github.com/WangYihang/tranco-go-package"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/singleflight"
 )
 
 func main() {
 	trancoLists := make(map[string]*tranco.TrancoList)
 	var trancoListsMu sync.Mutex
+	var listGroup singleflight.Group
+
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.GET("/rank/:domain/date/:date", func(c *gin.Context) {
 		domain := c.Param("domain")
 		date := c.Param("date")
 
-		// gin serves each request on its own goroutine, so the shared
-		// trancoLists map needs to be guarded against concurrent access.
 		trancoListsMu.Lock()
 		list, ok := trancoLists[date]
+		trancoListsMu.Unlock()
+
 		if !ok {
-			var err error
-			list, err = tranco.NewTrancoList(date, true, "full", ".tranco")
-			if err != nil {
+			// singleflight collapses concurrent requests for the same new
+			// date into one download, and - critically - runs it without
+			// holding trancoListsMu, so a slow first-time download for one
+			// date no longer blocks requests for other, already-cached
+			// dates.
+			v, err, _ := listGroup.Do(date, func() (interface{}, error) {
+				newList, err := tranco.NewTrancoList(date, true, "full", ".tranco", tranco.WithQuiet())
+				if err != nil {
+					return nil, err
+				}
+				trancoListsMu.Lock()
+				trancoLists[date] = newList
 				trancoListsMu.Unlock()
+				return newList, nil
+			})
+			if err != nil {
 				c.JSON(500, gin.H{
-					"message": "error occured while parsing date",
+					"message": "error occured while obtaining tranco list",
 					"status":  "error",
 				})
 				return
 			}
-			trancoLists[date] = list
+			list = v.(*tranco.TrancoList)
 		}
-		trancoListsMu.Unlock()
 
 		rank, err := list.Rank(domain)
 		if err != nil {

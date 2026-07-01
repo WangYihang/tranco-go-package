@@ -6,6 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/schollz/progressbar/v3 v3.14.0
+	golang.org/x/sync v0.21.0
 )
 
 require (
