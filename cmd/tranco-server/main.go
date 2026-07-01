@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/WangYihang/tranco-go-package"
@@ -10,9 +9,13 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+// maxCachedLists bounds how many distinct dates' lists are kept in memory
+// at once. Each entry can hold millions of rows, so this caps a
+// long-running server's memory use rather than growing it forever.
+const maxCachedLists = 16
+
 func main() {
-	trancoLists := make(map[string]*tranco.TrancoList)
-	var trancoListsMu sync.Mutex
+	trancoLists := newTrancoListCache(maxCachedLists)
 	var listGroup singleflight.Group
 
 	gin.SetMode(gin.ReleaseMode)
@@ -29,14 +32,12 @@ func main() {
 			return
 		}
 
-		trancoListsMu.Lock()
-		list, ok := trancoLists[date]
-		trancoListsMu.Unlock()
+		list, ok := trancoLists.get(date)
 
 		if !ok {
 			// singleflight collapses concurrent requests for the same new
 			// date into one download, and - critically - runs it without
-			// holding trancoListsMu, so a slow first-time download for one
+			// holding the cache lock, so a slow first-time download for one
 			// date no longer blocks requests for other, already-cached
 			// dates.
 			v, err, _ := listGroup.Do(date, func() (interface{}, error) {
@@ -44,9 +45,7 @@ func main() {
 				if err != nil {
 					return nil, err
 				}
-				trancoListsMu.Lock()
-				trancoLists[date] = newList
-				trancoListsMu.Unlock()
+				trancoLists.set(date, newList)
 				return newList, nil
 			})
 			if err != nil {
