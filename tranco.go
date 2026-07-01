@@ -46,7 +46,11 @@ func NewTrancoList(date string, includeSubdomain bool, scale string, cacheFolder
 	}
 	list.ID = listID
 	slog.Debug("downloading tranco list", slog.String("id", listID))
-	err = list.Download(list.DefaultFilePath())
+	filePath, err := list.DefaultFilePath()
+	if err != nil {
+		return nil, err
+	}
+	err = list.Download(filePath)
 	if err != nil {
 		slog.Error("error occurs when downloading tranco list", slog.String("id", listID), slog.String("error", err.Error()))
 	}
@@ -68,14 +72,19 @@ func (t *TrancoList) Rank(domain string) (int64, error) {
 		return rank, nil
 	}
 
-	fd, err := os.Open(t.DefaultFilePath())
+	filePath, err := t.DefaultFilePath()
+	if err != nil {
+		return 0, err
+	}
+
+	fd, err := os.Open(filePath)
 	if err != nil {
 		return 0, err
 	}
 	defer fd.Close()
 
 	scanner := bufio.NewScanner(fd)
-	slog.Debug("Scanning tranco list", slog.String("domain", t.DefaultFilePath()))
+	slog.Debug("scanning tranco list", slog.String("filepath", filePath))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		currentRank, currentDomain := parseLine(line)
@@ -89,28 +98,32 @@ func (t *TrancoList) Rank(domain string) (int64, error) {
 	return 0, fmt.Errorf("domain %s not found in tranco list", domain)
 }
 
-func (t *TrancoList) DefaultFilePath() string {
+func (t *TrancoList) DefaultFilePath() (string, error) {
 	var listType string
 	if t.IncludeSubdomain {
 		listType = "fqdn"
 	} else {
 		listType = "sld"
 	}
-	var baseFolder string
-	baseFolder, err := os.UserHomeDir()
-	if err != nil {
-		baseFolder = os.TempDir()
+
+	folder := t.CacheFolder
+	if folder == "" {
+		folder = ".tranco"
 	}
-	folder := filepath.Join(
-		baseFolder,
-		".tranco",
-	)
+	if !filepath.IsAbs(folder) {
+		baseFolder, err := os.UserHomeDir()
+		if err != nil {
+			baseFolder = os.TempDir()
+		}
+		folder = filepath.Join(baseFolder, folder)
+	}
+
+	if err := os.MkdirAll(folder, 0755); err != nil {
+		return "", fmt.Errorf("failed to create cache folder %q: %w", folder, err)
+	}
+
 	filename := fmt.Sprintf("%s_%s_%s_%s.csv", t.Date, listType, t.Scale, t.ID)
-	err = os.MkdirAll(folder, 0755)
-	if err != nil {
-		panic(err)
-	}
-	return filepath.Join(folder, filename)
+	return filepath.Join(folder, filename), nil
 }
 
 func (t *TrancoList) newHTTPGetRequest(url string) (*http.Request, error) {
