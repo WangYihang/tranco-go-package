@@ -68,6 +68,7 @@ type TrancoList struct {
 	httpClient  *http.Client
 	userAgent   string
 	baseURL     string
+	quiet       bool
 }
 
 func (t *TrancoList) resolvedBaseURL() string {
@@ -77,11 +78,24 @@ func (t *TrancoList) resolvedBaseURL() string {
 	return defaultBaseURL
 }
 
+// Option configures optional TrancoList behavior. Pass one or more to
+// NewTrancoList.
+type Option func(*TrancoList)
+
+// WithQuiet disables the download progress bar, which otherwise
+// unconditionally writes to stderr. Useful for library or server callers
+// that don't want that output.
+func WithQuiet() Option {
+	return func(t *TrancoList) {
+		t.quiet = true
+	}
+}
+
 // NewTrancoList resolves the Tranco list ID for the given date and
 // downloads it (or reuses an already-downloaded copy from cacheFolder). See
 // TrancoList's field docs for what date, includeSubdomain, scale, and
 // cacheFolder mean.
-func NewTrancoList(date string, includeSubdomain bool, scale string, cacheFolder string) (*TrancoList, error) {
+func NewTrancoList(date string, includeSubdomain bool, scale string, cacheFolder string, opts ...Option) (*TrancoList, error) {
 	slog.Debug("obtaining tranco list id", slog.String("date", date), slog.Bool("includeSubdomain", includeSubdomain), slog.String("scale", scale))
 	list := TrancoList{
 		Date:             date,
@@ -90,6 +104,9 @@ func NewTrancoList(date string, includeSubdomain bool, scale string, cacheFolder
 		httpClient:       &http.Client{Timeout: defaultHTTPTimeout},
 		userAgent:        fmt.Sprintf("%s Go-http-client/1.1 tranco-go/%s", strings.Replace(runtime.Version(), "go", "go/", 1), version.PV.Version),
 		CacheFolder:      cacheFolder,
+	}
+	for _, opt := range opts {
+		opt(&list)
 	}
 	listID, err := list.getTrancoListID(date, includeSubdomain)
 	if err != nil {
@@ -252,10 +269,12 @@ func (t *TrancoList) Download(filePath string) error {
 		return err
 	}
 
-	bar := progressbar.DefaultBytes(
-		response.ContentLength,
-		"downloading",
-	)
+	var bar *progressbar.ProgressBar
+	if t.quiet {
+		bar = progressbar.DefaultBytesSilent(response.ContentLength, "downloading")
+	} else {
+		bar = progressbar.DefaultBytes(response.ContentLength, "downloading")
+	}
 
 	_, copyErr := io.Copy(io.MultiWriter(fd, bar), response.Body)
 	closeErr := fd.Close()

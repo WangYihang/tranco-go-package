@@ -148,6 +148,33 @@ func TestDownloadSuccess(t *testing.T) {
 	}
 }
 
+func TestWithQuiet(t *testing.T) {
+	list := &TrancoList{}
+	WithQuiet()(list)
+	if !list.quiet {
+		t.Error("WithQuiet() should set quiet=true")
+	}
+}
+
+func TestDownloadRespectsQuiet(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "1,google.com\n")
+	}))
+	defer server.Close()
+
+	list := newTestTrancoList(t, server.URL)
+	list.ID = "XXXXX"
+	WithQuiet()(list)
+
+	filePath := filepath.Join(t.TempDir(), "list.csv")
+	if err := list.Download(filePath); err != nil {
+		t.Fatalf("Download() unexpected error: %v", err)
+	}
+	if _, err := os.Stat(filePath); err != nil {
+		t.Fatalf("expected downloaded file at %s: %v", filePath, err)
+	}
+}
+
 func TestRank(t *testing.T) {
 	list := &TrancoList{
 		Date:             "2024-01-01",
