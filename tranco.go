@@ -14,10 +14,16 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/WangYihang/tranco-go-package/pkg/version"
 	"github.com/schollz/progressbar/v3"
 )
+
+// defaultHTTPTimeout bounds how long a single HTTP request (list ID lookup
+// or list download) may take before it is aborted, so a stalled connection
+// cannot block callers forever.
+const defaultHTTPTimeout = 5 * time.Minute
 
 type TrancoList struct {
 	ID               string
@@ -36,7 +42,7 @@ func NewTrancoList(date string, includeSubdomain bool, scale string, cacheFolder
 		Date:             date,
 		IncludeSubdomain: includeSubdomain,
 		Scale:            scale,
-		httpClient:       &http.Client{},
+		httpClient:       &http.Client{Timeout: defaultHTTPTimeout},
 		userAgent:        fmt.Sprintf("%s Go-http-client/1.1 tranco-go/%s", strings.Replace(runtime.Version(), "go", "go/", 1), version.PV.Version),
 		CacheFolder:      cacheFolder,
 	}
@@ -53,6 +59,7 @@ func NewTrancoList(date string, includeSubdomain bool, scale string, cacheFolder
 	err = list.Download(filePath)
 	if err != nil {
 		slog.Error("error occurs when downloading tranco list", slog.String("id", listID), slog.String("error", err.Error()))
+		return nil, err
 	}
 	slog.Debug("tranco list downloaded", slog.String("id", listID))
 	return &list, nil
