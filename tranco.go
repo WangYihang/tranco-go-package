@@ -94,8 +94,15 @@ func (t *TrancoList) Rank(domain string) (int64, error) {
 	slog.Debug("scanning tranco list", slog.String("filepath", filePath))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		currentRank, currentDomain := parseLine(line)
-		slog.Debug("Scanning tranco list", slog.String("domain", currentDomain), slog.Int64("rank", currentRank))
+		if line == "" {
+			continue
+		}
+		currentRank, currentDomain, err := parseLine(line)
+		if err != nil {
+			slog.Warn("skipping malformed tranco list line", slog.String("error", err.Error()))
+			continue
+		}
+		slog.Debug("scanning tranco list", slog.String("domain", currentDomain), slog.Int64("rank", currentRank))
 		t.cache[currentDomain] = currentRank
 		if currentDomain == domain {
 			return currentRank, nil
@@ -252,24 +259,17 @@ func Version() string {
 	return version.Tag
 }
 
-func parseLine(line string) (int64, string) {
-	var rank int64 = 0
-	var domain string = ""
-
+func parseLine(line string) (int64, string, error) {
 	parts := strings.Split(line, ",")
-
 	if len(parts) != 2 {
-		return rank, domain
+		return 0, "", fmt.Errorf("malformed tranco list line %q: expected 2 comma-separated fields, got %d", line, len(parts))
 	}
 
-	domain = parts[1]
-
-	rankStr := parts[0]
-	rank, err := strconv.ParseInt(rankStr, 10, 64)
-
+	domain := parts[1]
+	rank, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		return rank, domain
+		return 0, "", fmt.Errorf("malformed tranco list line %q: %w", line, err)
 	}
 
-	return rank, domain
+	return rank, domain, nil
 }
